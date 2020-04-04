@@ -738,46 +738,6 @@ mod tests {
     }
 
     #[test]
-    fn binding_sig_present_if_shielded_spend() {
-        let extsk = ExtendedSpendingKey::master(&[]);
-        let extfvk = ExtendedFullViewingKey::from(&extsk);
-        let to = extfvk.default_address().unwrap().1;
-
-        let mut rng = OsRng;
-
-        let note1 = to
-            .create_note(50000, Fs::random(&mut rng), &JUBJUB)
-            .unwrap();
-        let cm1 = Node::new(note1.cm(&JUBJUB).into_repr());
-        let mut tree = CommitmentTree::new();
-        tree.append(cm1).unwrap();
-        let witness1 = IncrementalWitness::from_tree(&tree);
-
-        let mut builder = Builder::new(0);
-
-        // Create a tx with a sapling spend. binding_sig should be present
-        builder
-            .add_sapling_spend(
-                extsk.clone(),
-                *to.diversifier(),
-                note1.clone(),
-                witness1.path().unwrap(),
-            )
-            .unwrap();
-
-        builder
-            .add_transparent_output(&TransparentAddress::PublicKey([0; 20]), Amount::zero())
-            .unwrap();
-
-        // Expect a binding signature error, because our inputs aren't valid, but this shows
-        // that a binding signature was attempted
-        assert_eq!(
-            builder.build(consensus::BranchId::Sapling, &MockTxProver),
-            Err(Error::BindingSig)
-        );
-    }
-
-    #[test]
     fn fails_on_negative_transparent_output() {
         let mut builder = Builder::new(0);
         assert_eq!(
